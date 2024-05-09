@@ -711,6 +711,20 @@ pub trait Queue: WasmNotSendSync {
     /// - All of the [`SurfaceTexture`][st]s that the command buffers
     ///   write to appear in the `surface_textures` argument.
     ///
+    /// - All resources used by a submitted [`CommandBuffer`][cb]
+    ///   ([`Texture`][t]s, [`BindGroup`][bg]s, [`RenderPipeline`][rp]s, and so
+    ///   on) must remain alive until the command buffer finishes execution.
+    ///
+    /// - Every [`SurfaceTexture`][st] that any command in `command_buffers`
+    ///   writes to must appear in the `surface_textures` argument.
+    ///
+    /// - No [`SurfaceTexture`][st] may appear in the `surface_textures`
+    ///   argument more than once.
+    ///
+    /// - Each [`SurfaceTexture`][st] in `surface_textures` must be configured
+    ///   for use with the [`Device`][d] associated with this [`Queue`],
+    ///   typically by calling [`Surface::configure`].
+    ///
     /// [`Fence`]: Api::Fence
     /// [cb]: Api::CommandBuffer
     /// [ce]: Api::CommandEncoder
