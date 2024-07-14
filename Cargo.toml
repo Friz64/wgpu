@@ -20,6 +20,7 @@ members = [
     "wgpu-macros",
     "wgpu-types",
     "wgpu",
+    "fuckedupstatic",
 ]
 exclude = []
 default-members = [
@@ -70,6 +71,7 @@ path = "./naga"
 version = "0.20.0"
 
 [workspace.dependencies]
+fuckedupstatic = { path = "fuckedupstatic" }
 anyhow = "1.0.86"
 arrayvec = "0.7"
 bincode = "1"

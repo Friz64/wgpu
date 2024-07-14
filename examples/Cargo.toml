@@ -29,6 +29,7 @@ webgl = ["wgpu/webgl"]
 webgpu = ["wgpu/webgpu"]
 
 [dependencies]
+fuckedupstatic.workspace = true
 bytemuck.workspace = true
 cfg-if.workspace = true
 encase = { workspace = true, features = ["glam"] }

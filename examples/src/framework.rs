@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use wgpu::{Instance, Surface};
+use wgpu::{rwh::HasDisplayHandle, Instance, Surface};
 use winit::{
     dpi::PhysicalSize,
     event::{Event, KeyEvent, StartCause, WindowEvent},
@@ -114,6 +114,9 @@ impl EventLoopWrapper {
         }
         builder = builder.with_title(title);
         let window = Arc::new(builder.build(&event_loop).unwrap());
+        unsafe {
+            FUCKED_UP = Some(window.display_handle().unwrap().as_raw());
+        }
 
         Self { event_loop, window }
     }
@@ -510,6 +513,7 @@ pub fn parse_url_query_string<'a>(query: &'a str, search_key: &str) -> Option<&'
     None
 }
 
+use fuckedupstatic::FUCKED_UP;
 #[cfg(test)]
 pub use wgpu_test::image::ComparisonType;
 

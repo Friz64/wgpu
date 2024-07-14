@@ -105,46 +105,41 @@ unsafe extern "system" fn egl_debug_proc(
     );
 }
 
-/// A simple wrapper around an X11 or Wayland display handle.
-/// Since the logic in this file doesn't actually need to directly
-/// persist a wayland connection handle, the only load-bearing
-/// enum variant is the X11 variant
-#[derive(Debug)]
-enum DisplayRef {
-    X11(ptr::NonNull<raw::c_void>),
-    Wayland,
-}
-
-impl DisplayRef {
-    /// Convenience for getting the underlying pointer
-    fn as_ptr(&self) -> *mut raw::c_void {
-        match *self {
-            Self::X11(ptr) => ptr.as_ptr(),
-            Self::Wayland => unreachable!(),
-        }
-    }
-}
-
 /// DisplayOwner ties the lifetime of the system display handle
 /// to that of the loaded library.
 /// It implements Drop to ensure that the display handle is closed
 /// prior to unloading the library so that we don't leak the
 /// associated file descriptors
 #[derive(Debug)]
-struct DisplayOwner {
-    library: libloading::Library,
-    display: DisplayRef,
+enum DisplayOwner {
+    X11 {
+        library: libloading::Library,
+        display: ptr::NonNull<raw::c_void>,
+    },
+    Wayland {
+        client_library: libloading::Library,
+        egl_library: libloading::Library,
+        display: ptr::NonNull<raw::c_void>,
+    },
 }
 
 impl Drop for DisplayOwner {
     fn drop(&mut self) {
-        match self.display {
-            DisplayRef::X11(ptr) => unsafe {
+        match self {
+            DisplayOwner::X11 { library, display } => unsafe {
                 let func: libloading::Symbol<XCloseDisplayFun> =
-                    self.library.get(b"XCloseDisplay").unwrap();
-                func(ptr.as_ptr());
+                    library.get(b"XCloseDisplay").unwrap();
+                func(display.as_ptr());
             },
-            DisplayRef::Wayland => {}
+            DisplayOwner::Wayland {
+                client_library,
+                display,
+                ..
+            } => unsafe {
+                let func: libloading::Symbol<WlDisplayDisconnectFun> =
+                    client_library.get(b"wl_display_disconnect").unwrap();
+                func(display.as_ptr());
+            },
         }
     }
 }
@@ -155,9 +150,9 @@ fn open_x_display() -> Option<DisplayOwner> {
         let library = find_library(&["libX11.so.6", "libX11.so"])?;
         let func: libloading::Symbol<XOpenDisplayFun> = library.get(b"XOpenDisplay").unwrap();
         let result = func(ptr::null());
-        ptr::NonNull::new(result).map(|ptr| DisplayOwner {
-            display: DisplayRef::X11(ptr),
+        ptr::NonNull::new(result).map(|ptr| DisplayOwner::X11 {
             library,
+            display: ptr,
         })
     }
 }
@@ -177,20 +172,17 @@ fn test_wayland_display() -> Option<DisplayOwner> {
      * is an active wayland display available.
      */
     log::debug!("Loading Wayland library to get the current display");
-    let library = unsafe {
+    unsafe {
         let client_library = find_library(&["libwayland-client.so.0", "libwayland-client.so"])?;
         let wl_display_connect: libloading::Symbol<WlDisplayConnectFun> =
             client_library.get(b"wl_display_connect").unwrap();
-        let wl_display_disconnect: libloading::Symbol<WlDisplayDisconnectFun> =
-            client_library.get(b"wl_display_disconnect").unwrap();
         let display = ptr::NonNull::new(wl_display_connect(ptr::null()))?;
-        wl_display_disconnect(display.as_ptr());
-        find_library(&["libwayland-egl.so.1", "libwayland-egl.so"])?
-    };
-    Some(DisplayOwner {
-        library,
-        display: DisplayRef::Wayland,
-    })
+        Some(DisplayOwner::Wayland {
+            client_library,
+            egl_library: find_library(&["libwayland-egl.so.1", "libwayland-egl.so"])?,
+            display,
+        })
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -426,7 +418,7 @@ struct Inner {
     supports_native_window: bool,
     config: khronos_egl::Config,
     #[cfg_attr(Emscripten, allow(dead_code))]
-    wl_display: Option<*mut raw::c_void>,
+    wl_display: Option<ptr::NonNull<raw::c_void>>,
     #[cfg_attr(Emscripten, allow(dead_code))]
     force_gles_minor_version: wgt::Gles3MinorVersion,
     /// Method by which the framebuffer should support srgb
@@ -793,31 +785,54 @@ impl crate::Instance for Instance {
         let egl1_5: Option<&Arc<EglInstance>> = Some(&egl);
 
         let (display, display_owner, wsi_kind) =
-            if let (Some(library), Some(egl)) = (wayland_library, egl1_5) {
+            if let (Some(display_owner), Some(egl)) = (wayland_library, egl1_5) {
+                let display_handle = unsafe { fuckedupstatic::FUCKED_UP.as_ref().unwrap() };
+                let wl_display_handle = match display_handle {
+                    raw_window_handle::RawDisplayHandle::Wayland(hell_yeah) => {
+                        hell_yeah.display.as_ptr()
+                    }
+                    _ => panic!("eww"),
+                };
+
+                let DisplayOwner::Wayland { display, .. } = display_owner else {
+                    unreachable!()
+                };
+
+                dbg!(display);
+
                 log::info!("Using Wayland platform");
                 let display_attributes = [khronos_egl::ATTRIB_NONE];
                 let display = unsafe {
                     egl.get_platform_display(
                         EGL_PLATFORM_WAYLAND_KHR,
-                        khronos_egl::DEFAULT_DISPLAY,
+                        // display.as_ptr(),
+                        wl_display_handle,
                         &display_attributes,
                     )
                 }
                 .unwrap();
-                (display, Some(Rc::new(library)), WindowKind::Wayland)
+                (display, Some(Rc::new(display_owner)), WindowKind::Wayland)
             } else if let (Some(display_owner), Some(egl)) = (x11_display_library, egl1_5) {
+                let DisplayOwner::X11 { display, .. } = display_owner else {
+                    unreachable!()
+                };
+
                 log::info!("Using X11 platform");
                 let display_attributes = [khronos_egl::ATTRIB_NONE];
                 let display = unsafe {
                     egl.get_platform_display(
                         EGL_PLATFORM_X11_KHR,
-                        display_owner.display.as_ptr(),
+                        display.as_ptr(),
                         &display_attributes,
                     )
                 }
                 .unwrap();
                 (display, Some(Rc::new(display_owner)), WindowKind::X11)
             } else if let (Some(display_owner), Some(egl)) = (angle_x11_display_library, egl1_5) {
+                let DisplayOwner::X11 { display, .. } = display_owner else {
+                    unreachable!()
+                };
+
                 log::info!("Using Angle platform with X11");
                 let display_attributes = [
                     EGL_PLATFORM_ANGLE_NATIVE_PLATFORM_TYPE_ANGLE as khronos_egl::Attrib,
@@ -829,7 +844,7 @@ impl crate::Instance for Instance {
                 let display = unsafe {
                     egl.get_platform_display(
                         EGL_PLATFORM_ANGLE_ANGLE,
-                        display_owner.display.as_ptr(),
+                        display.as_ptr(),
                         &display_attributes,
                     )
                 }
@@ -877,7 +892,12 @@ impl crate::Instance for Instance {
             unsafe { (function)(Some(egl_debug_proc), attributes.as_ptr()) };
         }
 
-        let inner = Inner::create(desc.flags, egl, display, desc.gles_minor_version)?;
+        let mut inner = Inner::create(desc.flags, egl, display, desc.gles_minor_version)?;
+        if let Some(display_owner) = &display_owner {
+            if let DisplayOwner::Wayland { display, .. } = **display_owner {
+                inner.wl_display = Some(display);
+            }
+        }
 
         Ok(Instance {
             wsi: WindowSystemInterface {
@@ -934,48 +954,49 @@ impl crate::Instance for Instance {
             }
             #[cfg(not(Emscripten))]
             (Rwh::Wayland(_), raw_window_handle::RawDisplayHandle::Wayland(display_handle)) => {
-                if inner
-                    .wl_display
-                    .map(|ptr| ptr != display_handle.display.as_ptr())
-                    .unwrap_or(true)
-                {
-                    /* Wayland displays are not sharable between surfaces so if the
-                     * surface we receive from this handle is from a different
-                     * display, we must re-initialize the context.
-                     *
-                     * See gfx-rs/gfx#3545
-                     */
-                    log::warn!("Re-initializing Gles context due to Wayland window");
+                dbg!(inner.wl_display);
+                // if inner
+                //     .wl_display
+                //     .map(|ptr| ptr != display_handle.display)
+                //     .unwrap_or(true)
+                // {
+                //     /* Wayland displays are not sharable between surfaces so if the
+                //      * surface we receive from this handle is from a different
+                //      * display, we must re-initialize the context.
+                //      *
+                //      * See gfx-rs/gfx#3545
+                //      */
+                //     log::warn!("Re-initializing Gles context due to Wayland window");
 
-                    use std::ops::DerefMut;
-                    let display_attributes = [khronos_egl::ATTRIB_NONE];
+                //     use std::ops::DerefMut;
+                //     let display_attributes = [khronos_egl::ATTRIB_NONE];
 
-                    let display = unsafe {
-                        inner
-                            .egl
-                            .instance
-                            .upcast::<khronos_egl::EGL1_5>()
-                            .unwrap()
-                            .get_platform_display(
-                                EGL_PLATFORM_WAYLAND_KHR,
-                                display_handle.display.as_ptr(),
-                                &display_attributes,
-                            )
-                    }
-                    .unwrap();
+                //     let display = unsafe {
+                //         inner
+                //             .egl
+                //             .instance
+                //             .upcast::<khronos_egl::EGL1_5>()
+                //             .unwrap()
+                //             .get_platform_display(
+                //                 EGL_PLATFORM_WAYLAND_KHR,
+                //                 display_handle.display.as_ptr(),
+                //                 &display_attributes,
+                //             )
+                //     }
+                //     .unwrap();
 
-                    let new_inner = Inner::create(
-                        self.flags,
-                        Arc::clone(&inner.egl.instance),
-                        display,
-                        inner.force_gles_minor_version,
-                    )?;
+                //     let new_inner = Inner::create(
+                //         self.flags,
+                //         Arc::clone(&inner.egl.instance),
+                //         display,
+                //         inner.force_gles_minor_version,
+                //     )?;
 
-                    let old_inner = std::mem::replace(inner.deref_mut(), new_inner);
-                    inner.wl_display = Some(display_handle.display.as_ptr());
+                //     let old_inner = std::mem::replace(inner.deref_mut(), new_inner);
+                //     inner.wl_display = Some(display_handle.display);
 
-                    drop(old_inner);
-                }
+                //     drop(old_inner);
+                // }
             }
             #[cfg(Emscripten)]
             (Rwh::Web(_), _) => {}
@@ -1243,9 +1264,15 @@ impl crate::Surface for Surface {
                         handle.a_native_window.as_ptr()
                     }
                     (WindowKind::Wayland, Rwh::Wayland(handle)) => {
-                        let library = &self.wsi.display_owner.as_ref().unwrap().library;
+                        let DisplayOwner::Wayland {
+                            ref egl_library, ..
+                        } = **self.wsi.display_owner.as_ref().unwrap()
+                        else {
+                            unreachable!()
+                        };
+
                         let wl_egl_window_create: libloading::Symbol<WlEglWindowCreateFun> =
-                            unsafe { library.get(b"wl_egl_window_create") }.unwrap();
+                            unsafe { egl_library.get(b"wl_egl_window_create") }.unwrap();
                         let window =
                             unsafe { wl_egl_window_create(handle.surface.as_ptr(), 640, 480) }
                                 as *mut _;
@@ -1352,9 +1379,15 @@ impl crate::Surface for Surface {
         };
 
         if let Some(window) = wl_window {
-            let library = &self.wsi.display_owner.as_ref().unwrap().library;
+            let DisplayOwner::Wayland {
+                ref egl_library, ..
+            } = **self.wsi.display_owner.as_ref().unwrap()
+            else {
+                unreachable!()
+            };
+
             let wl_egl_window_resize: libloading::Symbol<WlEglWindowResizeFun> =
-                unsafe { library.get(b"wl_egl_window_resize") }.unwrap();
+                unsafe { egl_library.get(b"wl_egl_window_resize") }.unwrap();
             unsafe {
                 wl_egl_window_resize(
                     window,
@@ -1419,14 +1452,15 @@ impl crate::Surface for Surface {
                 .destroy_surface(self.egl.display, surface)
                 .unwrap();
             if let Some(window) = wl_window {
-                let library = &self
-                    .wsi
-                    .display_owner
-                    .as_ref()
-                    .expect("unsupported window")
-                    .library;
+                let DisplayOwner::Wayland {
+                    ref egl_library, ..
+                } = **self.wsi.display_owner.as_ref().expect("unsupported window")
+                else {
+                    unreachable!()
+                };
+
                 let wl_egl_window_destroy: libloading::Symbol<WlEglWindowDestroyFun> =
-                    unsafe { library.get(b"wl_egl_window_destroy") }.unwrap();
+                    unsafe { egl_library.get(b"wl_egl_window_destroy") }.unwrap();
                 unsafe { wl_egl_window_destroy(window) };
             }
         }
