@@ -1,7 +1,10 @@
 use alloc::{borrow::ToOwned as _, boxed::Box, collections::BTreeMap, sync::Arc, vec::Vec};
 use core::{ffi::CStr, marker::PhantomData};
 
-use ash::{ext, google, khr, vk};
+use ash::{
+    ext, google, khr,
+    vk::{self, TaggedStructure},
+};
 use wgpu_sync::Mutex;
 
 use crate::{vulkan::semaphore_list::SemaphoreList, AllocationSizes};
@@ -160,82 +163,82 @@ impl PhysicalDeviceFeatures {
     ) -> vk::DeviceCreateInfo<'a> {
         info = info.enabled_features(&self.core);
         if let Some(ref mut feature) = self.descriptor_indexing {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.timeline_semaphore {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.image_robustness {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.robustness2 {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.multiview {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.astc_hdr {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.shader_float16_int8 {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self._16bit_storage {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.zero_initialize_workgroup_memory {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.acceleration_structure {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.buffer_device_address {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.ray_query {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.ray_tracing_pipeline {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.shader_atomic_int64 {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.position_fetch {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.shader_image_atomic_int64 {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.shader_atomic_float {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.subgroup_size_control {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.maintenance4 {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.mesh_shader {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.shader_integer_dot_product {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.shader_barycentrics {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.portability_subset {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.cooperative_matrix {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.vulkan_memory_model {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         if let Some(ref mut feature) = self.shader_draw_parameters {
-            info = info.push_next(feature);
+            info = info.push(feature);
         }
         info
     }
@@ -1629,7 +1632,7 @@ impl PhysicalDeviceProperties {
         ]
         .contains(&self.properties.vendor_id);
         let ignore_max_fragment_combined_output_resources_by_driver =
-            self.is_driver(vk::DriverId::MESA_AGXV);
+            self.is_driver(vk::DriverId::MESA_HONEYKRISP);
         let ignore_max_fragment_combined_output_resources =
             ignore_max_fragment_combined_output_resources_by_device
                 || ignore_max_fragment_combined_output_resources_by_driver;
@@ -1968,91 +1971,91 @@ impl super::InstanceShared {
                     let next = capabilities
                         .maintenance_3
                         .insert(vk::PhysicalDeviceMaintenance3Properties::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 if supports_maintenance4 {
                     let next = capabilities
                         .maintenance_4
                         .insert(vk::PhysicalDeviceMaintenance4Properties::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 if supports_maintenance5 {
                     let next = capabilities
                         .maintenance_5
                         .insert(vk::PhysicalDeviceMaintenance5PropertiesKHR::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 if supports_descriptor_indexing {
                     let next = capabilities
                         .descriptor_indexing
                         .insert(vk::PhysicalDeviceDescriptorIndexingPropertiesEXT::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 if supports_acceleration_structure {
                     let next = capabilities
                         .acceleration_structure
                         .insert(vk::PhysicalDeviceAccelerationStructurePropertiesKHR::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 if supports_ray_tracing_pipeline {
                     let next = capabilities
                         .ray_tracing_pipeline
                         .insert(vk::PhysicalDeviceRayTracingPipelinePropertiesKHR::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 if supports_driver_properties {
                     let next = capabilities
                         .driver
                         .insert(vk::PhysicalDeviceDriverPropertiesKHR::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 if capabilities.device_api_version >= vk::API_VERSION_1_1 {
                     let next = capabilities
                         .subgroup
                         .insert(vk::PhysicalDeviceSubgroupProperties::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 if supports_subgroup_size_control {
                     let next = capabilities
                         .subgroup_size_control
                         .insert(vk::PhysicalDeviceSubgroupSizeControlProperties::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 if supports_robustness2 {
                     let next = capabilities
                         .robustness2
                         .insert(vk::PhysicalDeviceRobustness2PropertiesEXT::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 if supports_pci_bus_info {
                     let next = capabilities
                         .pci_bus_info
                         .insert(vk::PhysicalDevicePCIBusInfoPropertiesEXT::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 if supports_mesh_shader {
                     let next = capabilities
                         .mesh_shader
                         .insert(vk::PhysicalDeviceMeshShaderPropertiesEXT::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 if supports_multiview {
                     let next = capabilities
                         .multiview
                         .insert(vk::PhysicalDeviceMultiviewProperties::default());
-                    properties2 = properties2.push_next(next);
+                    properties2 = properties2.push(next);
                 }
 
                 unsafe {
@@ -2062,7 +2065,7 @@ impl super::InstanceShared {
                 // Query cooperative matrix properties
                 if capabilities.supports_extension(khr::cooperative_matrix::NAME) {
                     let coop_matrix =
-                        khr::cooperative_matrix::Instance::new(&self.entry, &self.raw);
+                        khr::cooperative_matrix::Instance::load(&self.entry, &self.raw);
                     capabilities.cooperative_matrix_properties =
                         query_cooperative_matrix_properties(&coop_matrix, phd);
                 }
@@ -2100,7 +2103,7 @@ impl super::InstanceShared {
                 let next = features
                     .multiview
                     .insert(vk::PhysicalDeviceMultiviewFeatures::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             // `VK_KHR_sampler_ycbcr_conversion` is promoted to 1.1
@@ -2110,14 +2113,14 @@ impl super::InstanceShared {
                 let next = features
                     .sampler_ycbcr_conversion
                     .insert(vk::PhysicalDeviceSamplerYcbcrConversionFeatures::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             if capabilities.supports_extension(ext::descriptor_indexing::NAME) {
                 let next = features
                     .descriptor_indexing
                     .insert(vk::PhysicalDeviceDescriptorIndexingFeaturesEXT::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             // `VK_KHR_timeline_semaphore` is promoted to 1.2, but has no
@@ -2126,7 +2129,7 @@ impl super::InstanceShared {
                 let next = features
                     .timeline_semaphore
                     .insert(vk::PhysicalDeviceTimelineSemaphoreFeaturesKHR::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             // `VK_KHR_shader_atomic_int64` is promoted to 1.2, but has no
@@ -2137,38 +2140,38 @@ impl super::InstanceShared {
                 let next = features
                     .shader_atomic_int64
                     .insert(vk::PhysicalDeviceShaderAtomicInt64Features::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             if capabilities.supports_extension(ext::shader_image_atomic_int64::NAME) {
                 let next = features
                     .shader_image_atomic_int64
                     .insert(vk::PhysicalDeviceShaderImageAtomicInt64FeaturesEXT::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
             if capabilities.supports_extension(ext::shader_atomic_float::NAME) {
                 let next = features
                     .shader_atomic_float
                     .insert(vk::PhysicalDeviceShaderAtomicFloatFeaturesEXT::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
             if capabilities.supports_extension(ext::image_robustness::NAME) {
                 let next = features
                     .image_robustness
                     .insert(vk::PhysicalDeviceImageRobustnessFeaturesEXT::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
             if capabilities.supports_extension(ext::robustness2::NAME) {
                 let next = features
                     .robustness2
                     .insert(vk::PhysicalDeviceRobustness2FeaturesEXT::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
             if capabilities.supports_extension(ext::texture_compression_astc_hdr::NAME) {
                 let next = features
                     .astc_hdr
                     .insert(vk::PhysicalDeviceTextureCompressionASTCHDRFeaturesEXT::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             // `VK_KHR_shader_float16_int8` is promoted to 1.2
@@ -2178,27 +2181,27 @@ impl super::InstanceShared {
                 let next = features
                     .shader_float16_int8
                     .insert(vk::PhysicalDeviceShaderFloat16Int8FeaturesKHR::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             if capabilities.supports_extension(khr::_16bit_storage::NAME) {
                 let next = features
                     ._16bit_storage
                     .insert(vk::PhysicalDevice16BitStorageFeaturesKHR::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
             if capabilities.supports_extension(khr::acceleration_structure::NAME) {
                 let next = features
                     .acceleration_structure
                     .insert(vk::PhysicalDeviceAccelerationStructureFeaturesKHR::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             if capabilities.supports_extension(khr::ray_tracing_position_fetch::NAME) {
                 let next = features
                     .position_fetch
                     .insert(vk::PhysicalDeviceRayTracingPositionFetchFeaturesKHR::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             // `VK_KHR_maintenance4` is promoted to 1.3
@@ -2208,7 +2211,7 @@ impl super::InstanceShared {
                 let next = features
                     .maintenance4
                     .insert(vk::PhysicalDeviceMaintenance4Features::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             // `VK_KHR_zero_initialize_workgroup_memory` is promoted to 1.3
@@ -2218,7 +2221,7 @@ impl super::InstanceShared {
                 let next = features
                     .zero_initialize_workgroup_memory
                     .insert(vk::PhysicalDeviceZeroInitializeWorkgroupMemoryFeatures::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             // `VK_EXT_subgroup_size_control` is promoted to 1.3
@@ -2228,14 +2231,14 @@ impl super::InstanceShared {
                 let next = features
                     .subgroup_size_control
                     .insert(vk::PhysicalDeviceSubgroupSizeControlFeatures::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             if capabilities.supports_extension(ext::mesh_shader::NAME) {
                 let next = features
                     .mesh_shader
                     .insert(vk::PhysicalDeviceMeshShaderFeaturesEXT::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             // `VK_KHR_shader_integer_dot_product` is promoted to 1.3
@@ -2245,28 +2248,28 @@ impl super::InstanceShared {
                 let next = features
                     .shader_integer_dot_product
                     .insert(vk::PhysicalDeviceShaderIntegerDotProductFeatures::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             if capabilities.supports_extension(khr::fragment_shader_barycentric::NAME) {
                 let next = features
                     .shader_barycentrics
                     .insert(vk::PhysicalDeviceFragmentShaderBarycentricFeaturesKHR::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             if capabilities.supports_extension(khr::portability_subset::NAME) {
                 let next = features
                     .portability_subset
                     .insert(vk::PhysicalDevicePortabilitySubsetFeaturesKHR::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             if capabilities.supports_extension(khr::cooperative_matrix::NAME) {
                 let next = features
                     .cooperative_matrix
                     .insert(vk::PhysicalDeviceCooperativeMatrixFeaturesKHR::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             if capabilities.device_api_version >= vk::API_VERSION_1_2
@@ -2275,14 +2278,14 @@ impl super::InstanceShared {
                 let next = features
                     .vulkan_memory_model
                     .insert(vk::PhysicalDeviceVulkanMemoryModelFeaturesKHR::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             if capabilities.device_api_version >= vk::API_VERSION_1_1 {
                 let next = features
                     .shader_draw_parameters
                     .insert(vk::PhysicalDeviceShaderDrawParametersFeatures::default());
-                features2 = features2.push_next(next);
+                features2 = features2.push(next);
             }
 
             unsafe { get_device_properties.get_physical_device_features2(phd, &mut features2) };
@@ -2704,7 +2707,7 @@ impl super::Adapter {
         // level) but contains a few functions that can be loaded directly on the Device for a
         // dispatch-table-less pointer.
         let debug_utils_fn = if self.instance.extensions.contains(&ext::debug_utils::NAME) {
-            Some(ext::debug_utils::Device::new(
+            Some(ext::debug_utils::Device::load(
                 &self.instance.raw,
                 &raw_device,
             ))
@@ -2712,7 +2715,7 @@ impl super::Adapter {
             None
         };
         let indirect_count_fn = if enabled_extensions.contains(&khr::draw_indirect_count::NAME) {
-            Some(khr::draw_indirect_count::Device::new(
+            Some(khr::draw_indirect_count::Device::load(
                 &self.instance.raw,
                 &raw_device,
             ))
@@ -2721,7 +2724,7 @@ impl super::Adapter {
         };
         let timeline_semaphore_fn = if enabled_extensions.contains(&khr::timeline_semaphore::NAME) {
             Some(super::ExtensionFn::Extension(
-                khr::timeline_semaphore::Device::new(&self.instance.raw, &raw_device),
+                khr::timeline_semaphore::Device::load(&self.instance.raw, &raw_device),
             ))
         } else if self.phd_capabilities.device_api_version >= vk::API_VERSION_1_2 {
             Some(super::ExtensionFn::Promoted)
@@ -2732,11 +2735,11 @@ impl super::Adapter {
             && enabled_extensions.contains(&khr::buffer_device_address::NAME)
         {
             Some(super::RayTracingDeviceExtensionFunctions {
-                acceleration_structure: khr::acceleration_structure::Device::new(
+                acceleration_structure: khr::acceleration_structure::Device::load(
                     &self.instance.raw,
                     &raw_device,
                 ),
-                buffer_device_address: khr::buffer_device_address::Device::new(
+                buffer_device_address: khr::buffer_device_address::Device::load(
                     &self.instance.raw,
                     &raw_device,
                 ),
@@ -2746,7 +2749,7 @@ impl super::Adapter {
         };
         let ray_tracing_pipeline_fns =
             if enabled_extensions.contains(&khr::ray_tracing_pipeline::NAME) {
-                Some(khr::ray_tracing_pipeline::Device::new(
+                Some(khr::ray_tracing_pipeline::Device::load(
                     &self.instance.raw,
                     &raw_device,
                 ))
@@ -2754,7 +2757,7 @@ impl super::Adapter {
                 None
             };
         let mesh_shading_fns = if enabled_extensions.contains(&ext::mesh_shader::NAME) {
-            Some(ext::mesh_shader::Device::new(
+            Some(ext::mesh_shader::Device::load(
                 &self.instance.raw,
                 &raw_device,
             ))
@@ -2762,7 +2765,7 @@ impl super::Adapter {
             None
         };
         let external_memory_fd_fn = if enabled_extensions.contains(&khr::external_memory_fd::NAME) {
-            Some(khr::external_memory_fd::Device::new(
+            Some(khr::external_memory_fd::Device::load(
                 &self.instance.raw,
                 &raw_device,
             ))
@@ -3507,7 +3510,7 @@ fn supports_bgra8unorm_storage(
 
     unsafe {
         let mut properties3 = vk::FormatProperties3::default();
-        let mut properties2 = vk::FormatProperties2::default().push_next(&mut properties3);
+        let mut properties2 = vk::FormatProperties2::default().push(&mut properties3);
 
         instance.get_physical_device_format_properties2(
             phd,
@@ -3570,14 +3573,26 @@ fn query_cooperative_matrix_properties(
     coop_matrix: &khr::cooperative_matrix::Instance,
     phd: vk::PhysicalDevice,
 ) -> Vec<wgt::CooperativeMatrixProperties> {
-    let vk_properties =
-        match unsafe { coop_matrix.get_physical_device_cooperative_matrix_properties(phd) } {
-            Ok(props) => props,
+    let mut vk_properties = vec![
+        vk::CooperativeMatrixPropertiesKHR::default();
+        match unsafe { coop_matrix.get_physical_device_cooperative_matrix_properties_len(phd) } {
+            Ok(count) => count,
             Err(e) => {
-                log::warn!("Failed to query cooperative matrix properties: {e:?}");
+                log::warn!("Failed to query cooperative matrix properties length: {e:?}");
                 return Vec::new();
             }
-        };
+        }
+    ];
+
+    match unsafe {
+        coop_matrix.get_physical_device_cooperative_matrix_properties(phd, &mut vk_properties)
+    } {
+        Ok(props) => props,
+        Err(e) => {
+            log::warn!("Failed to query cooperative matrix properties: {e:?}");
+            return Vec::new();
+        }
+    };
 
     log::debug!(
         "Vulkan reports {} cooperative matrix configurations",
