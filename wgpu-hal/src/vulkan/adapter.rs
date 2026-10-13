@@ -1928,8 +1928,11 @@ impl super::InstanceShared {
     ) -> (PhysicalDeviceProperties, PhysicalDeviceFeatures) {
         let capabilities = {
             let mut capabilities = PhysicalDeviceProperties::default();
-            capabilities.supported_extensions =
-                unsafe { self.raw.enumerate_device_extension_properties(phd).unwrap() };
+            capabilities.supported_extensions = unsafe {
+                self.raw
+                    .enumerate_device_extension_properties(phd, None)
+                    .unwrap()
+            };
             capabilities.properties = unsafe { self.raw.get_physical_device_properties(phd) };
             capabilities.device_api_version = capabilities.properties.api_version;
 

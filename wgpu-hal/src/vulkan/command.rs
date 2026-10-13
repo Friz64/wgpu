@@ -44,7 +44,7 @@ impl super::CommandEncoder {
             unsafe {
                 self.device.raw.cmd_write_timestamp(
                     self.active,
-                    vk::PipelineStageFlags::BOTTOM_OF_PIPE,
+                    vk::PipelineStageFlagBits::BOTTOM_OF_PIPE,
                     query_set,
                     index,
                 );
@@ -485,7 +485,7 @@ impl crate::CommandEncoder for super::CommandEncoder {
         unsafe {
             self.device.raw.cmd_write_timestamp(
                 self.active,
-                vk::PipelineStageFlags::BOTTOM_OF_PIPE,
+                vk::PipelineStageFlagBits::BOTTOM_OF_PIPE,
                 set.raw,
                 index,
             )

@@ -19,7 +19,7 @@ use wgpu_sync::RwLock;
 const OHOS_SURFACE_EXTENSION_NAME: &CStr = c"VK_OHOS_surface";
 
 unsafe extern "system" fn debug_utils_messenger_callback(
-    message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
+    message_severity: vk::DebugUtilsMessageSeverityFlagBitsEXT,
     message_type: vk::DebugUtilsMessageTypeFlagsEXT,
     callback_data_ptr: *const vk::DebugUtilsMessengerCallbackDataEXT,
     user_data: *mut c_void,
@@ -105,10 +105,10 @@ unsafe extern "system" fn debug_utils_messenger_callback(
     let level = match message_severity {
         // We intentionally suppress info messages down to debug
         // so that users are not innundated with info messages from the runtime.
-        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => log::Level::Trace,
-        vk::DebugUtilsMessageSeverityFlagsEXT::INFO => log::Level::Debug,
-        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => log::Level::Warn,
-        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => log::Level::Error,
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::VERBOSE => log::Level::Trace,
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::INFO => log::Level::Debug,
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::WARNING => log::Level::Warn,
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::ERROR => log::Level::Error,
         _ => log::Level::Warn,
     };
 

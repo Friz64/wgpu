@@ -238,7 +238,7 @@ impl Surface for NativeSurface {
             .image_array_layers(config.extent.depth_or_array_layers)
             .image_usage(conv::map_texture_usage(config.usage))
             .image_sharing_mode(vk::SharingMode::EXCLUSIVE)
-            .pre_transform(vk::SurfaceTransformFlagsKHR::IDENTITY)
+            .pre_transform(vk::SurfaceTransformFlagBitsKHR::IDENTITY)
             .composite_alpha(conv::map_composite_alpha_mode(config.composite_alpha_mode))
             .present_mode(conv::map_present_mode(config.present_mode))
             .clipped(true)

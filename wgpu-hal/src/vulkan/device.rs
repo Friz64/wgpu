@@ -96,7 +96,7 @@ impl super::DeviceShared {
                 let mut color_refs = Vec::with_capacity(colors.len());
                 let mut resolve_refs = Vec::with_capacity(color_refs.capacity());
                 let mut ds_ref = None;
-                let samples = vk::SampleCountFlags::from_raw(sample_count);
+                let samples = vk::SampleCountFlagBits::from_raw(sample_count);
                 let unused = vk::AttachmentReference {
                     attachment: vk::ATTACHMENT_UNUSED,
                     layout: vk::ImageLayout::UNDEFINED,
@@ -134,7 +134,7 @@ impl super::DeviceShared {
                                 let (load_op, store_op) = conv::map_attachment_ops(ops);
                                 let vk_attachment = vk::AttachmentDescription::default()
                                     .format(format)
-                                    .samples(vk::SampleCountFlags::TYPE_1)
+                                    .samples(vk::SampleCountFlagBits::TYPE_1)
                                     .load_op(load_op)
                                     .store_op(store_op)
                                     .initial_layout(layout)
@@ -276,8 +276,8 @@ struct CompiledStage {
 
 struct MemoryProperties {
     base: vk::PhysicalDeviceMemoryProperties,
-    heap_budget: ArrayVec<vk::DeviceSize, { vk::MAX_MEMORY_HEAPS }>,
-    heap_usage: ArrayVec<vk::DeviceSize, { vk::MAX_MEMORY_HEAPS }>,
+    heap_budget: ArrayVec<vk::DeviceSize, { vk::MAX_MEMORY_HEAPS as usize }>,
+    heap_usage: ArrayVec<vk::DeviceSize, { vk::MAX_MEMORY_HEAPS as usize }>,
 }
 
 impl MemoryProperties {
@@ -437,7 +437,7 @@ impl super::Device {
             .extent(conv::map_copy_extent(&copy_size))
             .mip_levels(desc.mip_level_count)
             .array_layers(desc.array_layer_count())
-            .samples(vk::SampleCountFlags::from_raw(desc.sample_count))
+            .samples(vk::SampleCountFlagBits::from_raw(desc.sample_count))
             .tiling(tiling)
             .usage(usage)
             .sharing_mode(vk::SharingMode::EXCLUSIVE)
@@ -655,7 +655,7 @@ impl super::Device {
         let mut fd_props = vk::MemoryFdPropertiesKHR::default();
         unsafe {
             external_memory_fd_fn.get_memory_fd_properties(
-                vk::ExternalMemoryHandleTypeFlags::DMA_BUF_EXT,
+                vk::ExternalMemoryHandleTypeFlagBits::DMA_BUF_EXT,
                 fd_raw,
                 &mut fd_props,
             )
@@ -678,7 +678,7 @@ impl super::Device {
         let mut dedicated_allocate_info = vk::MemoryDedicatedAllocateInfo::default().image(image);
 
         let mut import_memory_info = vk::ImportMemoryFdInfoKHR::default()
-            .handle_type(vk::ExternalMemoryHandleTypeFlags::DMA_BUF_EXT)
+            .handle_type(vk::ExternalMemoryHandleTypeFlagBits::DMA_BUF_EXT)
             .fd(fd_raw);
 
         let memory_allocate_info = vk::MemoryAllocateInfo::default()
@@ -829,9 +829,12 @@ impl super::Device {
         }
 
         let entry_point = CString::new(stage.entry_point).unwrap();
+        // This is fine since we always only have one bit set
+        let stage_bit =
+            vk::ShaderStageFlagBits::from_raw(conv::map_shader_stage(stage_flags).as_raw());
         let mut create_info = vk::PipelineShaderStageCreateInfo::default()
             .flags(flags)
-            .stage(conv::map_shader_stage(stage_flags))
+            .stage(stage_bit)
             .module(vk_module);
 
         // Circumvent struct lifetime check because of a self-reference inside CompiledStage
@@ -2166,7 +2169,7 @@ impl crate::Device for super::Device {
             (desc.multisample.mask >> 32) as u32,
         ];
         let vk_multisample = vk::PipelineMultisampleStateCreateInfo::default()
-            .rasterization_samples(vk::SampleCountFlags::from_raw(desc.multisample.count))
+            .rasterization_samples(vk::SampleCountFlagBits::from_raw(desc.multisample.count))
             .alpha_to_coverage_enable(desc.multisample.alpha_to_coverage_enabled)
             .sample_mask(&vk_sample_mask);
 

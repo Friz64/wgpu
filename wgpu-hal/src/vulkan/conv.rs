@@ -572,12 +572,12 @@ pub fn map_vk_present_mode(mode: vk::PresentModeKHR) -> Option<wgt::PresentMode>
     }
 }
 
-pub fn map_composite_alpha_mode(mode: wgt::CompositeAlphaMode) -> vk::CompositeAlphaFlagsKHR {
+pub fn map_composite_alpha_mode(mode: wgt::CompositeAlphaMode) -> vk::CompositeAlphaFlagBitsKHR {
     match mode {
-        wgt::CompositeAlphaMode::Opaque => vk::CompositeAlphaFlagsKHR::OPAQUE,
-        wgt::CompositeAlphaMode::PreMultiplied => vk::CompositeAlphaFlagsKHR::PRE_MULTIPLIED,
-        wgt::CompositeAlphaMode::PostMultiplied => vk::CompositeAlphaFlagsKHR::POST_MULTIPLIED,
-        wgt::CompositeAlphaMode::Inherit => vk::CompositeAlphaFlagsKHR::INHERIT,
+        wgt::CompositeAlphaMode::Opaque => vk::CompositeAlphaFlagBitsKHR::OPAQUE,
+        wgt::CompositeAlphaMode::PreMultiplied => vk::CompositeAlphaFlagBitsKHR::PRE_MULTIPLIED,
+        wgt::CompositeAlphaMode::PostMultiplied => vk::CompositeAlphaFlagBitsKHR::POST_MULTIPLIED,
+        wgt::CompositeAlphaMode::Inherit => vk::CompositeAlphaFlagBitsKHR::INHERIT,
         wgt::CompositeAlphaMode::Auto => unreachable!(),
     }
 }
